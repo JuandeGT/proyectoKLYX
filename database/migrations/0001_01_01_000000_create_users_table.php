@@ -12,15 +12,29 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
+            $table->id(); // Crea la columna 'id' autonumérica
+            
+            $table->string('nombre');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('direccion')->nullable();
+            $table->string('telefono', 20)->nullable();
+            
+            // decimal('nombre', total_numeros, decimales): Ej: 999999.99
+            $table->decimal('monedas', 8, 2)->default(0.00); 
+            
+            // boolean: Solo guarda true (1) o false (0)
+            $table->boolean('suscripcion')->default(false); 
+            
+            // timestamp: Guarda fechas y horas
+            $table->timestamp('fecha_fin_suscripcion')->nullable(); 
+
             $table->rememberToken();
-            $table->timestamps();
+            $table->timestamps(); // Crea las columnas 'created_at' y 'updated_at'
         });
 
+        // Creado por laravel
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();
             $table->string('token');
