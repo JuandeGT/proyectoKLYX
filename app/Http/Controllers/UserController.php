@@ -7,6 +7,7 @@ use App\Http\Requests\StoreUserRequest; // Importamos a tu vigilante
 use Illuminate\Support\Facades\Hash; // Herramienta para encriptar contraseñas
 use App\Http\Requests\LoginUserRequest; // Importamos el nuevo vigilante
 use Illuminate\Support\Facades\Auth; // Herramienta de Laravel para comprobar contraseñas
+use App\Http\Requests\RecargarMonedasRequest;
 
 class UserController extends Controller
 {
@@ -65,6 +66,75 @@ class UserController extends Controller
                 'token' => $token // Entregamos la llave
             ],
             'code' => 200 // 200 significa "Todo OK"
+        ], 200);
+    }
+
+    // Función para recargar Klyx Coins (Igual para todos los usuarios)
+    public function recargar(RecargarMonedasRequest $request)
+    {
+        // 1. Identificamos al usuario gracias a su Token VIP de Sanctum
+        $user = $request->user();
+
+        // 2. Le sumamos las monedas a su cartera
+        $user->monedas += $request->cantidad;
+        $user->save(); // Guardamos en la base de datos
+
+        // 3. Devolvemos la respuesta
+        return response()->json([
+            'error' => false,
+            'message' => '¡Klyx Coins recargadas con éxito!',
+            'data' => [
+                'usuario' => $user->nombre,
+                'monedas_actuales' => $user->monedas,
+                'vip' => $user->suscripcion
+            ],
+            'code' => 200
+        ], 200);
+    }
+
+    // Función para comprar la suscripción VIP
+    public function comprarSuscripcion(\Illuminate\Http\Request $request)
+    {
+        $user = $request->user();
+        $precioVip = 1000; // Puedes cambiar el precio aquí
+
+        // 1. ¿Ya es VIP? Evitamos que gaste monedas si ya lo tiene activo
+        if ($user->suscripcion && $user->fecha_fin_suscripcion > now()) {
+            return response()->json([
+                'error' => true,
+                'message' => 'Ya eres un usuario VIP.',
+                'data' => [],
+                'code' => 400
+            ], 400); // 400 es Bad Request (Petición incorrecta)
+        }
+
+        // 2. ¿Tiene dinero suficiente?
+        if ($user->monedas < $precioVip) {
+            return response()->json([
+                'error' => true,
+                'message' => 'No tienes suficientes Klyx Coins. Necesitas ' . $precioVip . '.',
+                'data' => [],
+                'code' => 400
+            ], 400);
+        }
+
+        // 3. Si llega aquí, todo está en orden. Procedemos al cobro.
+        $user->monedas -= $precioVip; // Le restamos las monedas
+        $user->suscripcion = true; // Le damos la insignia VIP
+        $user->fecha_fin_suscripcion = now()->addDays(30); // Le sumamos 30 días exactos desde hoy
+        $user->save(); // Guardamos los cambios en la base de datos
+
+        // 4. Devolvemos la respuesta de éxito
+        return response()->json([
+            'error' => false,
+            'message' => '¡Felicidades! Ya eres VIP.',
+            'data' => [
+                'usuario' => $user->nombre,
+                'monedas_restantes' => $user->monedas,
+                'vip' => $user->suscripcion,
+                'fecha_fin_vip' => $user->fecha_fin_suscripcion
+            ],
+            'code' => 200
         ], 200);
     }
 }
