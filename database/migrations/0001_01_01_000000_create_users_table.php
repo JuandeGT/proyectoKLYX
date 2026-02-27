@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
-            $table->id(); // Crea la columna 'id' autonumérica
+            $table->uuid('id')->primary(); // Cambiamos el número autoincremental por un UUID
             
             $table->string('nombre');
             $table->string('email')->unique();
