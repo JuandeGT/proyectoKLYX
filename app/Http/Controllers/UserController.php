@@ -8,6 +8,9 @@ use Illuminate\Support\Facades\Hash; // Herramienta para encriptar contraseñas
 use App\Http\Requests\LoginUserRequest; // Importamos el nuevo vigilante
 use Illuminate\Support\Facades\Auth; // Herramienta de Laravel para comprobar contraseñas
 use App\Http\Requests\RecargarMonedasRequest;
+use Illuminate\Http\Request;
+use App\Models\Transaccion;
+use Illuminate\Support\Facades\DB;
 
 class UserController extends Controller
 {
@@ -38,9 +41,11 @@ class UserController extends Controller
     // Función para iniciar sesión (Login)
     public function verify(LoginUserRequest $request)
     {
-        // 1. Comprobamos si el email y la contraseña coinciden en la base de datos
-        // Auth::attempt coge la contraseña escrita, la encripta por dentro y la compara con la guardada.
-        if (!Auth::attempt($request->only('email', 'password'))) {
+        // 1. Buscamos al usuario en la base de datos por su email
+        $user = User::where('email', $request->email)->first();
+
+        // 2. Comprobamos si existe y si la contraseña encriptada coincide (Hash::check)
+        if (!$user || !Hash::check($request->password, $user->password)) {
             // Si falla, devolvemos un error 401 (No Autorizado)
             return response()->json([
                 'error' => true,
@@ -50,22 +55,46 @@ class UserController extends Controller
             ], 401);
         }
 
-        // 2. Si el código llega aquí, el usuario y contraseña son correctos. 
-        // Buscamos a ese usuario en la base de datos para extraer sus datos:
-        $user = User::where('email', $request->email)->first();
+        // Comprobación de caducidad VIP al hacer Login
+        if ($user->suscripcion && $user->fecha_fin_suscripcion && $user->fecha_fin_suscripcion < now()) {
+            $user->suscripcion = false;
+            $user->fecha_fin_suscripcion = null;
+            $user->save();
+        }
 
-        // 3. Le fabricamos su Token VIP de Sanctum para que pueda jugar
+        // Le fabricamos su Token VIP de Sanctum para que pueda jugar
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        // 4. Devolvemos tu mensaje personalizado y el Token
+        // Sacamos el array limpio (ej: ["Usuario"])
+        $nombresRoles = $user->getRoleNames(); 
+
+        // Le decimos a Laravel: "Oculta la relación bruta de la base de datos"
+        $user->makeHidden('roles');
+
+        // Devolvemos tu mensaje personalizado y el Token
         return response()->json([
             'error' => false,
             'message' => 'Inicio de sesión exitoso.',
             'data' => [
                 'usuario' => $user,
+                'rol' => $nombresRoles,
                 'token' => $token // Entregamos la llave
             ],
             'code' => 200 // 200 significa "Todo OK"
+        ], 200);
+    }
+
+    // Función para cerrar sesión (Logout)
+    public function logout(Request $request)
+    {
+        // Identificamos el token que está usando el usuario en este momento y lo destruimos
+        $request->user()->currentAccessToken()->delete();
+
+        return response()->json([
+            'error' => false,
+            'message' => 'Sesión cerrada correctamente. ¡Vuelve pronto!',
+            'data' => [],
+            'code' => 200
         ], 200);
     }
 
@@ -75,9 +104,19 @@ class UserController extends Controller
         // 1. Identificamos al usuario gracias a su Token VIP de Sanctum
         $user = $request->user();
 
-        // 2. Le sumamos las monedas a su cartera
-        $user->monedas += $request->cantidad;
-        $user->save(); // Guardamos en la base de datos
+        DB::transaction(function () use ($user, $request) {
+            // 2. Le sumamos las monedas a su cartera
+            $user->monedas += $request->cantidad;
+            $user->save(); // Guardamos en la base de datos
+
+            // Registramos la transacción
+            Transaccion::create([
+                'user_id' => $user->id,
+                'tipo' => 'recarga',
+                'cantidad' => $request->cantidad,
+                'descripcion' => 'Recarga de ' . $request->cantidad . ' Klyx Coins.'
+            ]);
+        }); // Si algo falla dentro de esta función no se hace ninguna, es por seguridad.
 
         // 3. Devolvemos la respuesta
         return response()->json([
@@ -93,7 +132,7 @@ class UserController extends Controller
     }
 
     // Función para comprar la suscripción VIP
-    public function comprarSuscripcion(\Illuminate\Http\Request $request)
+    public function comprarSuscripcion(Request $request)
     {
         $user = $request->user();
         $precioVip = 1000; // Puedes cambiar el precio aquí
@@ -118,11 +157,23 @@ class UserController extends Controller
             ], 400);
         }
 
-        // 3. Si llega aquí, todo está en orden. Procedemos al cobro.
-        $user->monedas -= $precioVip; // Le restamos las monedas
-        $user->suscripcion = true; // Le damos la insignia VIP
-        $user->fecha_fin_suscripcion = now()->addDays(30); // Le sumamos 30 días exactos desde hoy
-        $user->save(); // Guardamos los cambios en la base de datos
+        DB::transaction(function () use ($user, $precioVip) {
+            // 3. Si llega aquí, todo está en orden. Procedemos al cobro.
+            $user->monedas -= $precioVip; // Le restamos las monedas
+            $user->suscripcion = true; // Le damos la insignia VIP
+            $user->fecha_fin_suscripcion = now()->addDays(30); // Le sumamos 30 días exactos desde hoy
+            $user->save(); // Guardamos los cambios en la base de datos
+
+            // Registramos la transacción
+            Transaccion::create([
+                'user_id' => $user->id,
+                'tipo' => 'compra_vip',
+                'cantidad' => -$precioVip, // En NEGATIVO porque gasta monedas
+                'descripcion' => 'Compra de suscripción VIP (30 días).'
+            ]);
+        }); // Si algo falla dentro de esta función no se hace ninguna, es por seguridad.
+
+        
 
         // 4. Devolvemos la respuesta de éxito
         return response()->json([
