@@ -24,6 +24,9 @@ Route::middleware(['auth:sanctum', CheckVipExpiration::class])->group(function (
     Route::get('/perfil', [ProfileController::class, 'show']);
     Route::put('/perfil', [ProfileController::class, 'update']);
 
+    // Historial de transacciones
+    Route::get('/mis-transacciones', [UserController::class, 'historialTransacciones']);
+
     // Grupo solo para Administradores
     Route::middleware('role:Admin')->group(function () {
         // Esta línea crea automáticamente las rutas de ver, editar y borrar

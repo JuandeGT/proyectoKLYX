@@ -188,4 +188,23 @@ class UserController extends Controller
             'code' => 200
         ], 200);
     }
+
+    public function historialTransacciones(Request $request)
+    {
+        // 1. Obtenemos al usuario que está haciendo la petición (por su token)
+        $user = $request->user();
+
+        // 2. Buscamos sus transacciones en la base de datos y las ordenamos por fecha (las más recientes primero)
+        $transacciones = Transaccion::where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // 3. Devolvemos la respuesta al Frontend
+        return response()->json([
+            'error' => false,
+            'message' => 'Historial de transacciones recuperado con éxito.',
+            'data' => $transacciones,
+            'code' => 200
+        ], 200);
+    }
 }

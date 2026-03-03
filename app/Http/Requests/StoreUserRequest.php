@@ -12,7 +12,7 @@ class StoreUserRequest extends FormRequest
         return true; 
     }
 
-    // 2. Las reglas estrictas que debe cumplir el jugador
+    // 2. Las reglas estrictas que debe cumplir el usuario
     public function rules(): array
     {
         return [

@@ -96,7 +96,7 @@ class AdminUserController extends Controller
     }
 
     // Función para BORRAR a un usuario
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         // 1. Buscamos al usuario
         $user = User::find($id);
@@ -106,7 +106,7 @@ class AdminUserController extends Controller
         }
 
         // 2. Evitamos que el Admin se borre a sí mismo por accidente
-        if ($user->id === auth()->id()) {
+        if ($user->id === $request->user()->id()) {
             return response()->json(['error' => true, 'message' => 'No puedes borrarte a ti mismo.', 'code' => 400], 400);
         }
 
