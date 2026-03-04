@@ -9,6 +9,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use App\Models\Objeto;
 
 class User extends Authenticatable
 {
@@ -52,7 +53,12 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'suscripcion' => 'boolean',
-            'monedas' => 'integer',
+            'saldo' => 'integer',
         ];
+    }
+
+    public function objetos()
+    {
+        return $this->belongsToMany(Objeto::class, 'inventarios')->withTimestamps();
     }
 }

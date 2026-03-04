@@ -21,8 +21,8 @@ return new class extends Migration
             $table->string('direccion')->nullable();
             $table->string('telefono', 20)->nullable();
             
-            // decimal('nombre', total_numeros, decimales): Ej: 999999.99
-            $table->decimal('monedas', 8, 2)->default(0.00); 
+            // integer numeros enteros limpios Ej: 999999.99
+            $table->integer('saldo')->default(0); 
             
             // boolean: Solo guarda true (1) o false (0)
             $table->boolean('suscripcion')->default(false); 
@@ -43,7 +43,7 @@ return new class extends Migration
 
         Schema::create('sessions', function (Blueprint $table) {
             $table->string('id')->primary();
-            $table->foreignId('user_id')->nullable()->index();
+            $table->foreignUuid('user_id')->nullable()->index();
             $table->string('ip_address', 45)->nullable();
             $table->text('user_agent')->nullable();
             $table->longText('payload');

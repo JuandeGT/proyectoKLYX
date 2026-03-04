@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
+use \App\Models\HistorialApertura;
+use \App\Models\Transaccion;
 
 class AdminUserController extends Controller
 {
@@ -61,10 +63,10 @@ class AdminUserController extends Controller
         }
 
         // 2. Actualizamos los datos que el Admin haya enviado en la petición
-        // (Por ejemplo, podemos cambiarle el nombre, las monedas o si es VIP)
+        // (Por ejemplo, podemos cambiarle el nombre, el saldo o si es VIP)
         if ($request->has('nombre')) $user->nombre = $request->nombre;
         if ($request->has('email')) $user->email = $request->email;
-        if ($request->has('monedas')) $user->monedas = $request->monedas;
+        if ($request->has('saldo')) $user->saldo = $request->saldo;
         // Gestión inteligente de la suscripción VIP
         if ($request->has('suscripcion')) {
             $user->suscripcion = $request->suscripcion;
@@ -117,6 +119,58 @@ class AdminUserController extends Controller
             'error' => false,
             'message' => 'Usuario eliminado de la plataforma.',
             'data' => [],
+            'code' => 200
+        ], 200);
+    }
+
+    public function historialCajas($id)
+    {
+        $user = User::find($id);
+        
+        if (!$user) {
+            return response()->json([
+                'error' => true, 
+                'message' => 'Usuario no encontrado.', 
+                'data' => null, 
+                'code' => 404
+            ], 404);
+        }
+
+        // Buscamos el historial y traemos la info de la caja y el objeto
+        $historial = HistorialApertura::with(['caja', 'objeto'])
+            ->where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'error' => false, 
+            'message' => 'Historial de cajas del usuario obtenido correctamente.',
+            'data' => $historial, 
+            'code' => 200
+        ], 200);
+    }
+
+    public function historialTransacciones($id)
+    {
+        $user = User::find($id);
+        
+        if (!$user) {
+            return response()->json([
+                'error' => true, 
+                'message' => 'Usuario no encontrado.', 
+                'data' => null, 
+                'code' => 404
+            ], 404);
+        }
+
+        $transacciones = Transaccion::where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'error' => false, 
+            'message' => 'Historial de transacciones del usuario obtenido correctamente.',
+            'data' => $transacciones, 
             'code' => 200
         ], 200);
     }
