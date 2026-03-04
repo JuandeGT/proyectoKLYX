@@ -7,10 +7,11 @@ use App\Http\Requests\StoreUserRequest; // Importamos a tu vigilante
 use Illuminate\Support\Facades\Hash; // Herramienta para encriptar contraseñas
 use App\Http\Requests\LoginUserRequest; // Importamos el nuevo vigilante
 use Illuminate\Support\Facades\Auth; // Herramienta de Laravel para comprobar contraseñas
-use App\Http\Requests\RecargarMonedasRequest;
+use App\Http\Requests\RecargarSaldoRequest;
 use Illuminate\Http\Request;
 use App\Models\Transaccion;
 use Illuminate\Support\Facades\DB;
+use App\Models\HistorialApertura;
 
 class UserController extends Controller
 {
@@ -23,7 +24,7 @@ class UserController extends Controller
             'nombre' => $request->nombre,
             'email' => $request->email,
             'password' => Hash::make($request->password), // Encriptamos la contraseña siempre
-            // Nota: 'monedas' y 'suscripcion' se ponen solos a 0 y false por defecto gracias a la base de datos
+            // Nota: 'saldo' y 'suscripcion' se ponen solos a 0 y false por defecto gracias a la base de datos
         ]);
 
         // 2. Le asignamos automáticamente el rol de usuario normal
@@ -99,14 +100,14 @@ class UserController extends Controller
     }
 
     // Función para recargar Klyx Coins (Igual para todos los usuarios)
-    public function recargar(RecargarMonedasRequest $request)
+    public function recargar(RecargarSaldoRequest $request)
     {
         // 1. Identificamos al usuario gracias a su Token VIP de Sanctum
         $user = $request->user();
 
         DB::transaction(function () use ($user, $request) {
-            // 2. Le sumamos las monedas a su cartera
-            $user->monedas += $request->cantidad;
+            // 2. Le sumamos el saldo a su cartera
+            $user->saldo += $request->cantidad;
             $user->save(); // Guardamos en la base de datos
 
             // Registramos la transacción
@@ -124,7 +125,7 @@ class UserController extends Controller
             'message' => '¡Klyx Coins recargadas con éxito!',
             'data' => [
                 'usuario' => $user->nombre,
-                'monedas_actuales' => $user->monedas,
+                'saldo_actual' => $user->saldo,
                 'vip' => $user->suscripcion
             ],
             'code' => 200
@@ -148,7 +149,7 @@ class UserController extends Controller
         }
 
         // 2. ¿Tiene dinero suficiente?
-        if ($user->monedas < $precioVip) {
+        if ($user->saldo < $precioVip) {
             return response()->json([
                 'error' => true,
                 'message' => 'No tienes suficientes Klyx Coins. Necesitas ' . $precioVip . '.',
@@ -159,7 +160,7 @@ class UserController extends Controller
 
         DB::transaction(function () use ($user, $precioVip) {
             // 3. Si llega aquí, todo está en orden. Procedemos al cobro.
-            $user->monedas -= $precioVip; // Le restamos las monedas
+            $user->saldo -= $precioVip; // Le restamos las monedas
             $user->suscripcion = true; // Le damos la insignia VIP
             $user->fecha_fin_suscripcion = now()->addDays(30); // Le sumamos 30 días exactos desde hoy
             $user->save(); // Guardamos los cambios en la base de datos
@@ -181,7 +182,7 @@ class UserController extends Controller
             'message' => '¡Felicidades! Ya eres VIP.',
             'data' => [
                 'usuario' => $user->nombre,
-                'monedas_restantes' => $user->monedas,
+                'saldo_restante' => $user->saldo,
                 'vip' => $user->suscripcion,
                 'fecha_fin_vip' => $user->fecha_fin_suscripcion
             ],
@@ -202,8 +203,41 @@ class UserController extends Controller
         // 3. Devolvemos la respuesta al Frontend
         return response()->json([
             'error' => false,
-            'message' => 'Historial de transacciones recuperado con éxito.',
+            'message' => 'Historial de transacciones obtenido.',
             'data' => $transacciones,
+            'code' => 200
+        ], 200);
+    }
+
+    public function historialCajas(Request $request)
+    {
+        $user = $request->user();
+
+        // Buscamos el historial del usuario y traemos también los datos de la caja y el objeto
+        $historial = HistorialApertura::with(['caja', 'objeto'])
+            ->where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'error' => false,
+            'message' => 'Historial de aperturas de cajas obtenido correctamente.',
+            'data' => $historial,
+            'code' => 200
+        ], 200);
+    }
+
+    public function miInventario(Request $request)
+    {
+        // La magia de Laravel: Traemos al usuario y le adjuntamos su mochila (la relación 'objetos' de User.php)
+        $user = $request->user()->load('objetos');
+
+        $user->objetos->makeHidden('pivot'); // Ocultamos los datos de la tabla intermedia (pivot)
+
+        return response()->json([
+            'error' => false,
+            'message' => 'Inventario obtenido correctamente.',
+            'data' => $user->objetos,
             'code' => 200
         ], 200);
     }

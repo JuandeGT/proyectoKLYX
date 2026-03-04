@@ -13,6 +13,8 @@ class DatabaseSeeder extends Seeder
             PermissionSeeder::class,
             RoleSeeder::class,
             UserSeeder::class,
+            ObjetoSeeder::class, 
+            CajaSeeder::class,   
         ]);
     }
 }

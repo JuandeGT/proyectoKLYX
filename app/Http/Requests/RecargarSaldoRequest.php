@@ -4,9 +4,9 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class RecargarMonedasRequest extends FormRequest
+class RecargarSaldoRequest extends FormRequest
 {
-    // 1. ¿Quién puede recargar monedas? Cualquier usuario logueado (VIP o normal)
+    // 1. ¿Quién puede recargar el saldo? Cualquier usuario logueado (VIP o normal)
     public function authorize(): bool
     {
         return auth()->check(); 
