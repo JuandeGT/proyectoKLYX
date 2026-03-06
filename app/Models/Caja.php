@@ -7,13 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class Caja extends Model
 {
-    /** @use HasFactory<\Database\Factories\CajaFactory> */
     use HasFactory;
 
     protected $fillable = [
         'nombre',
         'precio',
-        'imagen'
+        'imagen',
+        'vip'
     ];
 
     protected function casts(): array

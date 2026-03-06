@@ -12,12 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('transaccions', function (Blueprint $table) {
-            $table->uuid('id')->primary(); // Usamos UUID también para los tickets
+            $table->uuid('id')->primary();
             $table->foreignUuid('user_id')->constrained('users')->cascadeOnDelete(); // Si borramos al usuario, se borra su historial
-            $table->string('tipo'); // Ej: 'recarga', 'compra_vip', 'compra_caja'
-            $table->integer('cantidad'); // Monedas (positivo si gana, negativo si gasta)
-            $table->string('descripcion'); // Ej: 'Recarga de 500 Klyx Coins mediante tarjeta'
-            $table->timestamps(); // Guarda la fecha y hora exacta
+            $table->string('tipo'); // Ej: recarga, compra_vip, compra_caja...
+            $table->integer('cantidad'); 
+            $table->string('descripcion'); 
+            $table->timestamps();
         });
     }
 

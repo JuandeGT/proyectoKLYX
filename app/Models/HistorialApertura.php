@@ -16,9 +16,6 @@ class HistorialApertura extends Model
         'objeto_id'
     ];
 
-    /**
-     * Relaciones inversas para saber a quién pertenece cada ID
-     */
     public function user()
     {
         return $this->belongsTo(User::class);

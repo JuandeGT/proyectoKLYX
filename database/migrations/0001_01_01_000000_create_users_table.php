@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
-            $table->uuid('id')->primary(); // Cambiamos el número autoincremental por un UUID
+            $table->uuid('id')->primary();
             
             $table->string('nombre');
             $table->string('email')->unique();
@@ -21,17 +21,14 @@ return new class extends Migration
             $table->string('direccion')->nullable();
             $table->string('telefono', 20)->nullable();
             
-            // integer numeros enteros limpios Ej: 999999.99
             $table->integer('saldo')->default(0); 
             
-            // boolean: Solo guarda true (1) o false (0)
             $table->boolean('suscripcion')->default(false); 
             
-            // timestamp: Guarda fechas y horas
             $table->timestamp('fecha_fin_suscripcion')->nullable(); 
 
             $table->rememberToken();
-            $table->timestamps(); // Crea las columnas 'created_at' y 'updated_at'
+            $table->timestamps();
         });
 
         // Creado por laravel

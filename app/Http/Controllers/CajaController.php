@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Caja;
 use Illuminate\Http\Request;
 use \App\Models\HistorialApertura;
+use App\Models\Transaccion;
 
 class CajaController extends Controller
 {
@@ -24,12 +25,11 @@ class CajaController extends Controller
             ], 200);
 
         } catch (\Exception $e) {
-            // Si la base de datos falla o pasa algo raro, capturamos el error aquí
             return response()->json([
                 'error' => true,
                 'message' => 'Ocurrió un error al obtener las cajas.',
-                'data' => $e->getMessage(), // Opcional: muestra el error real de Laravel
-                'code' => 500 // 500 es el código de "Error interno del servidor"
+                'data' => $e->getMessage(),
+                'code' => 500
             ], 500);
         }
     }
@@ -40,14 +40,13 @@ class CajaController extends Controller
     public function store(Request $request)
     {
         try {
-            // Creamos la caja con los datos que nos envíen por la petición (Thunder Client/React)
             $caja = Caja::create($request->all());
 
             return response()->json([
                 'error' => false,
                 'message' => 'Caja creada correctamente.',
                 'data' => $caja,
-                'code' => 201 // 201 = Created
+                'code' => 201
             ], 201);
 
         } catch (\Exception $e) {
@@ -63,23 +62,20 @@ class CajaController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show($id) // OJO: Hemos cambiado "Caja $caja" por "$id"
+    public function show($id)
     {
         try {
-            // Buscamos la caja manualmente
             $caja = Caja::find($id);
 
-            // Si la caja no existe (ej: buscan el ID 999)
             if (!$caja) {
                 return response()->json([
                     'error' => true,
                     'message' => 'La caja solicitada no existe.',
                     'data' => null,
-                    'code' => 404 // 404 es el código de "No encontrado"
+                    'code' => 404
                 ], 404);
             }
 
-            // Si todo va bien y la encuentra
             return response()->json([
                 'error' => false,
                 'message' => 'Detalles de la caja obtenidos correctamente.',
@@ -100,7 +96,7 @@ class CajaController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, $id) // Cambiamos Caja $caja por $id
+    public function update(Request $request, $id)
     {
         try {
             $caja = Caja::find($id);
@@ -114,7 +110,6 @@ class CajaController extends Controller
                 ], 404);
             }
 
-            // Si existe, la actualizamos con los datos nuevos
             $caja->update($request->all());
 
             return response()->json([
@@ -137,7 +132,7 @@ class CajaController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy($id) // Cambiamos Caja $caja por $id
+    public function destroy($id)
     {
         try {
             $caja = Caja::find($id);
@@ -151,13 +146,12 @@ class CajaController extends Controller
                 ], 404);
             }
 
-            // Si existe, la eliminamos de la base de datos
             $caja->delete();
 
             return response()->json([
                 'error' => false,
                 'message' => 'Caja eliminada correctamente.',
-                'data' => null, // Como la hemos borrado, no devolvemos datos
+                'data' => null,
                 'code' => 200
             ], 200);
 
@@ -171,7 +165,6 @@ class CajaController extends Controller
         }
     }
 
-    // Añadimos Request $request para poder leer el token del usuario logueado
     public function abrir(Request $request, $id)
     {
         try {
@@ -186,7 +179,6 @@ class CajaController extends Controller
                 ], 404);
             }
 
-            // VERSIÓN DEFINITIVA: Cogemos el usuario real que nos manda Juande a través del Token
             $usuario = $request->user();
             
             // Si alguien intenta abrir una caja sin haber iniciado sesión
@@ -195,8 +187,18 @@ class CajaController extends Controller
                     'error' => true,
                     'message' => 'No autorizado. Debes iniciar sesión para abrir cajas.',
                     'data' => null,
-                    'code' => 401 // 401 = Unauthorized
+                    'code' => 401
                 ], 401);
+            }
+
+            // Si alguien intenta abrir una caja vip sin serlo
+            if ($caja->vip && !$usuario->suscripcion) {
+                return response()->json([
+                    'error' => true,
+                    'message' => 'Esta caja es exclusiva para usuarios VIP.',
+                    'data' => null,
+                    'code' => 403 
+                ], 403);
             }
 
             $premio = $caja->objetos()->inRandomOrder()->first();
@@ -210,13 +212,10 @@ class CajaController extends Controller
                 ], 404);
             }
 
-            // Extraemos la probabilidad, la pasamos a número entero (sin decimales) y la guardamos en el premio
             $premio->probabilidad = (int) $premio->pivot->probabilidad;
             
-            // Ocultamos el bloque 'pivot' feo
             $premio->makeHidden('pivot');
 
-            // Cobrar la caja
             if ($usuario->saldo < $caja->precio) {
                 return response()->json([
                     'error' => true,
@@ -226,9 +225,16 @@ class CajaController extends Controller
                 ], 400);
             }
 
-            // Le restamos el dinero y guardamos
             $usuario->saldo -= $caja->precio;
             $usuario->save();
+
+            // Registramos la transacción
+            Transaccion::create([
+                'user_id' => $usuario->id,
+                'tipo' => 'apertura_caja',
+                'cantidad' => -$caja->precio,
+                'descripcion' => 'Apertura de caja: ' . $caja->nombre
+            ]);
 
             // Creamos el historial
             HistorialApertura::create([
@@ -237,10 +243,9 @@ class CajaController extends Controller
                 'objeto_id' => $premio->id
             ]);
 
-            // Añadimos el premio al inventario del jugador
+            // Añadimos el premio al inventario del usuario
             $usuario->objetos()->attach($premio->id);
 
-            // Devolvemos el premio al Frontend
             return response()->json([
                 'error' => false,
                 'message' => '¡Caja abierta con éxito!',
@@ -262,11 +267,9 @@ class CajaController extends Controller
         }
     }
 
-    // Añadir (o actualizar probabilidad) de un objeto en una caja
     public function añadirObjeto(Request $request, $id)
     {
         try {
-            // Usamos find en vez de findOrFail para controlarlo nosotros
             $caja = Caja::find($id);
 
             if (!$caja) {
@@ -277,7 +280,7 @@ class CajaController extends Controller
                 ], 404);
             }
             
-            // syncWithoutDetaching añade el objeto si no está, y si está, solo actualiza la probabilidad
+            // "syncWithoutDetaching" añade el objeto si no está, y si está, solo actualiza la probabilidad
             $caja->objetos()->syncWithoutDetaching([
                 $request->objeto_id => ['probabilidad' => $request->probabilidad]
             ]);
@@ -298,7 +301,6 @@ class CajaController extends Controller
         }
     }
 
-    // Quitar un objeto de una caja (pero el objeto sigue existiendo en la tienda)
     public function quitarObjeto($id, $objeto_id)
     {
         try {
@@ -308,6 +310,15 @@ class CajaController extends Controller
                 return response()->json([
                     'error' => true,
                     'message' => 'La caja no existe.',
+                    'code' => 404
+                ], 404);
+            }
+
+            if (!$caja->objetos()->where('objeto_id', $objeto_id)->exists()) {
+                return response()->json([
+                    'error' => true,
+                    'message' => 'El objeto no se encuentra en esta caja.',
+                    'data' => null,
                     'code' => 404
                 ], 404);
             }

@@ -14,13 +14,10 @@ return new class extends Migration
         Schema::create('historial_aperturas', function (Blueprint $table) {
             $table->id();
             
-            // Relaciones: Quién, en qué caja, y qué le tocó
             $table->foreignUuid('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('caja_id')->constrained()->onDelete('cascade');
             $table->foreignId('objeto_id')->constrained()->onDelete('cascade');
 
-            // Esto es magia de Laravel: creará automáticamente 'created_at' 
-            // que nos servirá como la fecha y hora exacta de la apertura.
             $table->timestamps(); 
         });
     }
