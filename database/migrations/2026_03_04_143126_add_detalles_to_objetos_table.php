@@ -14,8 +14,8 @@ return new class extends Migration
         Schema::table('objetos', function (Blueprint $table) {
             $table->string('tipo')->default('cuchillo')->after('nombre');
             
-            $table->decimal('peso', 5, 2)->nullable()->after('tipo');
-            $table->decimal('longitud', 5, 2)->nullable()->after('peso');
+            $table->decimal('peso', 5, 2)->default(0)->after('tipo');
+            $table->decimal('longitud', 5, 2)->default(0)->after('peso');
         });
     }
 
