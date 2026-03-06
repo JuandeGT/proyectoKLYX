@@ -19,7 +19,6 @@ class CajaFactory extends Factory
         return [
             'nombre' => $this->faker->randomElement(['Caja 1', 'Caja 2', 'Caja 3', 'Caja 4', 'Caja Premium']),
             
-            // CAMBIO AQUÍ: Eliminamos randomFloat y usamos numberBetween
             'precio' => $this->faker->numberBetween(300, 5000),
             
             'imagen' => null,

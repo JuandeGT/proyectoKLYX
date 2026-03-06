@@ -26,9 +26,6 @@ class Objeto extends Model
         ];
     }
 
-    /**
-     * Relación inversa: Los usuarios que tienen este objeto en su inventario.
-     */
     public function usuarios()
     {
         return $this->belongsToMany(User::class, 'inventarios');

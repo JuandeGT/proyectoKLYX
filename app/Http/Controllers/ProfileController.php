@@ -8,13 +8,11 @@ use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
 {
-    // 1. Ver mi propio perfil (GET)
     public function show(Request $request)
     {
-        // El token ya nos dice quién es el usuario
         $user = $request->user(); 
         
-        // Limpiamos sus roles para que quede bonito
+        // Limpiamos el rol
         $user->rol = $user->getRoleNames();
         $user->makeHidden('roles');
 
@@ -26,13 +24,10 @@ class ProfileController extends Controller
         ], 200);
     }
 
-    // 2. Editar mi propio perfil (PUT)
     public function update(Request $request)
     {
         $user = $request->user();
 
-        // Validamos que lo que envíe sea correcto. 
-        // Permitimos que dirección y teléfono sean nulos (vacíos) por si el usuario quiere borrarlos.
         $request->validate([
             'nombre' => 'sometimes|string|max:255',
             'email' => ['sometimes', 'email', Rule::unique('users')->ignore($user->id)],
@@ -61,9 +56,9 @@ class ProfileController extends Controller
             $user->password = Hash::make($request->password);
         }
 
-        $user->save(); // Guardamos los cambios
+        $user->save();
 
-        // Le pasamos el rol limpio para que la respuesta sea perfecta
+        // Limpiamos el rol
         $user->rol = $user->getRoleNames();
         $user->makeHidden('roles');
 

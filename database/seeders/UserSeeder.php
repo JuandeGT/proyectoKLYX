@@ -10,7 +10,7 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. Creamos tu cuenta personal de superusuario
+        // Creamos al superusuario
         $juande = User::create([
             'nombre' => 'Juande',
             'email' => 'juandegomez2005@gmail.com',
@@ -19,7 +19,7 @@ class UserSeeder extends Seeder
             'suscripcion' => true,
         ]);
 
-        // 2. Te asignamos el rol de Administrador (que ya estará creado por el RoleSeeder)
+        // Le asignamos el rol de admin
         $juande->assignRole('Admin');
     }
 }

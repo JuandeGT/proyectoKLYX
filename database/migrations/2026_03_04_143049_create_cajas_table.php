@@ -14,7 +14,8 @@ return new class extends Migration
         Schema::create('cajas', function (Blueprint $table) {
             $table->id();
             $table->string('nombre'); 
-            $table->decimal('precio', 8, 2); 
+            $table->integer('precio'); 
+            $table->boolean('vip')->default(false);
             $table->string('imagen')->nullable();
             $table->timestamps();
         });
