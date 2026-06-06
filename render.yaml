@@ -1,0 +1,79 @@
+# ================================================================
+#  KLYX Backend — render.yaml
+#  Despliega el backend Laravel como Web Service en Render
+#  usando Docker (único método soportado para PHP en Render).
+#
+#  El build y el arranque los gestiona el Dockerfile + entrypoint.
+#
+#  IMPORTANTE — variables marcadas con sync: false:
+#  Debes añadirlas manualmente en Render Dashboard → Environment
+#  antes de hacer el primer despliegue.
+# ================================================================
+
+services:
+  - type: web
+    name: klyx-backend
+    env: docker            # Render usa Docker para PHP
+    region: frankfurt      # Europa — menor latencia desde España
+    plan: free
+    branch: main
+    autoDeploy: true       # Re-despliega en cada push a main
+
+    # buildCommand y startCommand los gestiona el Dockerfile.
+    # No se declaran aquí cuando env: docker.
+
+    # ── VARIABLES DE ENTORNO ─────────────────────────────────────
+    envVars:
+
+      # Aplicación
+      - key: APP_NAME
+        value: KLYX
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY
+        sync: false                  # Copia el valor de tu .env actual:
+                                     # base64:ce7X2HtS6QxIEpljt1sk53XUqSB1C9aqIXmAhKCiHnQ=
+      - key: APP_URL
+        sync: false                  # La URL que Render te asigne
+
+      # Base de datos — Supabase PostgreSQL
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        sync: false                  # db.dvscecjgruzayjspvueo.supabase.co
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_DATABASE
+        sync: false                  # postgres
+      - key: DB_USERNAME
+        sync: false                  # postgres
+      - key: DB_PASSWORD
+        sync: false                  # Tu contrasena de Supabase (NO la pongas aqui)
+      - key: DB_SSLMODE
+        value: require               # Obligatorio para Supabase
+
+      # Sesion y cache — usan la tabla de Supabase (ya creada en el SQL)
+      - key: SESSION_DRIVER
+        value: database
+      - key: SESSION_LIFETIME
+        value: "120"
+      - key: CACHE_STORE
+        value: database
+
+      # Colas — sync = sin workers separados (adecuado para Render free)
+      - key: QUEUE_CONNECTION
+        value: sync
+
+      # Logs — errorlog escribe en stderr, que Render captura en su panel
+      - key: LOG_CHANNEL
+        value: errorlog
+      - key: LOG_LEVEL
+        value: error
+
+      # CORS — URL del frontend en Vercel
+      - key: FRONTEND_URL
+        sync: false                  # https://TU_FRONTEND.vercel.app
+      - key: SANCTUM_STATEFUL_DOMAINS
+        sync: false                  # TU_FRONTEND.vercel.app (sin https://)

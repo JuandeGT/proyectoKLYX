@@ -16,13 +16,15 @@ class Objeto extends Model
         'longitud',
         'descripcion',
         'precio',
-        'imagen'
+        'imagen',
+        'en_oferta',
     ];
 
     protected function casts(): array
     {
         return [
-            'precio' => 'integer',
+            'precio'    => 'integer',
+            'en_oferta' => 'boolean', // Para que devuelva true/false en vez de 0/1
         ];
     }
 

@@ -24,14 +24,14 @@ services:
         depends_on:
             - pgsql
     pgsql:
-        image: 'postgres:18-alpine'
+        image: 'postgres:17-alpine'
         ports:
             - '${FORWARD_DB_PORT:-5432}:5432'
         environment:
-            PGPASSWORD: '${DB_PASSWORD:-secret}'
-            POSTGRES_DB: '${DB_DATABASE}'
-            POSTGRES_USER: '${DB_USERNAME}'
-            POSTGRES_PASSWORD: '${DB_PASSWORD:-secret}'
+            PGPASSWORD: '${DB_PASSWORD:-password}'
+            POSTGRES_DB: '${DB_DATABASE:-klyx}'
+            POSTGRES_USER: '${DB_USERNAME:-sail}'
+            POSTGRES_PASSWORD: '${DB_PASSWORD:-password}'
         volumes:
             - 'sail-pgsql:/var/lib/postgresql'
             - './vendor/laravel/sail/database/pgsql/create-testing-database.sql:/docker-entrypoint-initdb.d/10-create-testing-database.sql'

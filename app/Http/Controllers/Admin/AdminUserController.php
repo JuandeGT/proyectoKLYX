@@ -4,9 +4,12 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Objeto;
+use App\Models\Intercambio;
 use Illuminate\Http\Request;
-use \App\Models\HistorialApertura;
-use \App\Models\Transaccion;
+use Illuminate\Support\Facades\DB;
+use App\Models\HistorialApertura;
+use App\Models\Transaccion;
 
 class AdminUserController extends Controller
 {
@@ -134,6 +137,65 @@ class AdminUserController extends Controller
             'message' => 'Historial de cajas del usuario obtenido correctamente.',
             'data' => $historial, 
             'code' => 200
+        ], 200);
+    }
+
+    public function estadisticas()
+    {
+        $totalUsuarios  = User::count();
+        $usuariosVip    = User::where('suscripcion', true)->count();
+        $usuariosConKC  = User::where('saldo', '>', 0)->count();
+
+        $kcCirculacion  = User::sum('saldo');
+        $kcMedia        = $totalUsuarios > 0 ? round(User::avg('saldo'), 0) : 0;
+
+        $totalAperturas = HistorialApertura::count();
+
+        $intercambios = Intercambio::select('estado', DB::raw('count(*) as total'))
+            ->groupBy('estado')
+            ->pluck('total', 'estado');
+
+        $transacciones = Transaccion::select(
+                'tipo',
+                DB::raw('count(*) as total'),
+                DB::raw('sum(cantidad) as suma_kc')
+            )
+            ->groupBy('tipo')
+            ->get();
+
+        $totalObjetos   = Objeto::count();
+        $objetosEnOferta = Objeto::where('en_oferta', true)->count();
+
+        return response()->json([
+            'error'   => false,
+            'message' => 'Estadísticas globales obtenidas.',
+            'data'    => [
+                'usuarios' => [
+                    'total'       => $totalUsuarios,
+                    'vip_activos' => $usuariosVip,
+                    'con_saldo'   => $usuariosConKC,
+                ],
+                'economia' => [
+                    'kc_en_circulacion' => (int) $kcCirculacion,
+                    'kc_media_usuario'  => (int) $kcMedia,
+                ],
+                'cajas' => [
+                    'total_aperturas' => $totalAperturas,
+                ],
+                'intercambios' => [
+                    'pendientes'  => (int) ($intercambios['pendiente']  ?? 0),
+                    'aceptados'   => (int) ($intercambios['aceptado']   ?? 0),
+                    'rechazados'  => (int) ($intercambios['rechazado']  ?? 0),
+                    'cancelados'  => (int) ($intercambios['cancelado']  ?? 0),
+                    'total'       => (int) array_sum($intercambios->toArray()),
+                ],
+                'transacciones' => $transacciones,
+                'objetos' => [
+                    'total'      => $totalObjetos,
+                    'en_oferta'  => $objetosEnOferta,
+                ],
+            ],
+            'code' => 200,
         ], 200);
     }
 

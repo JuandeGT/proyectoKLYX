@@ -26,10 +26,10 @@ class UserController extends Controller
         $user->assignRole('Usuario');
 
         return response()->json([
-            'error' => false,
+            'error'   => false,
             'message' => 'Cuenta creada correctamente.',
-            'data' => $user,
-            'code' => 201
+            'data'    => $user,
+            'code'    => 201
         ], 201);
     }
 
@@ -39,31 +39,31 @@ class UserController extends Controller
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json([
-                'error' => true,
+                'error'   => true,
                 'message' => 'Credenciales incorrectas.',
-                'data' => [],
-                'code' => 401 
+                'data'    => [],
+                'code'    => 401
             ], 401);
         }
 
         if ($user->suscripcion && $user->fecha_fin_suscripcion && $user->fecha_fin_suscripcion < now()) {
-            $user->suscripcion = false;
-            $user->fecha_fin_suscripcion = null;
+            $user->suscripcion            = false;
+            $user->fecha_fin_suscripcion  = null;
             $user->save();
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        $nombresRoles = $user->getRoleNames(); 
+        $nombresRoles = $user->getRoleNames();
         $user->makeHidden('roles');
 
         return response()->json([
-            'error' => false,
+            'error'   => false,
             'message' => 'Inicio de sesión exitoso.',
-            'data' => [
+            'data'    => [
                 'usuario' => $user,
-                'rol' => $nombresRoles,
-                'token' => $token
+                'rol'     => $nombresRoles,
+                'token'   => $token
             ],
             'code' => 200
         ], 200);
@@ -74,10 +74,10 @@ class UserController extends Controller
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
-            'error' => false,
+            'error'   => false,
             'message' => 'Sesión cerrada correctamente. ¡Vuelve pronto!',
-            'data' => [],
-            'code' => 200
+            'data'    => [],
+            'code'    => 200
         ], 200);
     }
 
@@ -98,12 +98,12 @@ class UserController extends Controller
         }); // Si algo falla dentro de esta función no se hace ninguna, es por seguridad.
 
         return response()->json([
-            'error' => false,
+            'error'   => false,
             'message' => '¡Klyx Coins recargadas con éxito!',
-            'data' => [
-                'usuario' => $user->nombre,
+            'data'    => [
+                'usuario'      => $user->nombre,
                 'saldo_actual' => $user->saldo,
-                'vip' => $user->suscripcion
+                'vip'          => $user->suscripcion
             ],
             'code' => 200
         ], 200);
@@ -111,49 +111,48 @@ class UserController extends Controller
 
     public function comprarSuscripcion(Request $request)
     {
-        $user = $request->user();
+        $user      = $request->user();
         $precioVip = 1000;
 
         if ($user->suscripcion && $user->fecha_fin_suscripcion > now()) {
             return response()->json([
-                'error' => true,
+                'error'   => true,
                 'message' => 'Ya eres un usuario VIP.',
-                'data' => [],
-                'code' => 400
+                'data'    => [],
+                'code'    => 400
             ], 400);
         }
 
         if ($user->saldo < $precioVip) {
             return response()->json([
-                'error' => true,
+                'error'   => true,
                 'message' => 'No tienes suficientes Klyx Coins. Necesitas ' . $precioVip . '.',
-                'data' => [],
-                'code' => 400
+                'data'    => [],
+                'code'    => 400
             ], 400);
         }
 
         DB::transaction(function () use ($user, $precioVip) {
-            $user->saldo -= $precioVip;
-            $user->suscripcion = true;
-            $user->fecha_fin_suscripcion = now()->addDays(30);
+            $user->saldo                 -= $precioVip;
+            $user->suscripcion            = true;
+            $user->fecha_fin_suscripcion  = now()->addDays(30);
             $user->save();
 
             Transaccion::create([
-                'user_id' => $user->id,
-                'tipo' => 'compra_vip',
-                'cantidad' => -$precioVip,
+                'user_id'     => $user->id,
+                'tipo'        => 'compra_vip',
+                'cantidad'    => -$precioVip,
                 'descripcion' => 'Compra de suscripción VIP (30 días).'
             ]);
         }); // Si algo falla dentro de esta función no se hace ninguna, es por seguridad.
 
-        
         return response()->json([
-            'error' => false,
+            'error'   => false,
             'message' => '¡Felicidades! Ya eres VIP.',
-            'data' => [
-                'usuario' => $user->nombre,
-                'saldo_restante' => $user->saldo,
-                'vip' => $user->suscripcion,
+            'data'    => [
+                'usuario'       => $user->nombre,
+                'saldo_restante'=> $user->saldo,
+                'vip'           => $user->suscripcion,
                 'fecha_fin_vip' => $user->fecha_fin_suscripcion
             ],
             'code' => 200
@@ -169,10 +168,10 @@ class UserController extends Controller
             ->get();
 
         return response()->json([
-            'error' => false,
+            'error'   => false,
             'message' => 'Historial de transacciones obtenido.',
-            'data' => $transacciones,
-            'code' => 200
+            'data'    => $transacciones,
+            'code'    => 200
         ], 200);
     }
 
@@ -187,10 +186,10 @@ class UserController extends Controller
             ->get();
 
         return response()->json([
-            'error' => false,
+            'error'   => false,
             'message' => 'Historial de aperturas de cajas obtenido correctamente.',
-            'data' => $historial,
-            'code' => 200
+            'data'    => $historial,
+            'code'    => 200
         ], 200);
     }
 
@@ -201,10 +200,27 @@ class UserController extends Controller
         $user->objetos->makeHidden('pivot'); // Ocultamos los datos de la tabla intermedia (pivot)
 
         return response()->json([
-            'error' => false,
+            'error'   => false,
             'message' => 'Inventario obtenido correctamente.',
-            'data' => $user->objetos,
-            'code' => 200
+            'data'    => $user->objetos,
+            'code'    => 200
+        ], 200);
+    }
+
+    public function eliminarCuenta(Request $request)
+    {
+        $user = $request->user();
+
+        $user->tokens()->delete();   // Cerramos sesión en todos los dispositivos
+        $user->roles()->detach();    // Hay que borrar los roles manualmente porque Supabase no tiene CASCADE aquí
+        // El CASCADE de Supabase borra automáticamente el inventario, transacciones, etc
+        $user->delete();
+
+        return response()->json([
+            'error'   => false,
+            'message' => 'Tu cuenta ha sido eliminada correctamente.',
+            'data'    => [],
+            'code'    => 200
         ], 200);
     }
 }

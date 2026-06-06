@@ -12,14 +12,10 @@ class CheckVipExpiration
     {
         $user = $request->user();
 
-        if ($user && $user->suscripcion) {
-            
-            if ($user->fecha_fin_suscripcion && $user->fecha_fin_suscripcion < now()) {
-                
-                $user->suscripcion = false;
-                $user->fecha_fin_suscripcion = null;
-                $user->save();
-            }
+        if ($user && $user->suscripcion && $user->fecha_fin_suscripcion < now()) {
+            $user->suscripcion           = false;
+            $user->fecha_fin_suscripcion = null;
+            $user->save();
         }
 
         return $next($request);

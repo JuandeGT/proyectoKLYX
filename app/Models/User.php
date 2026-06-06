@@ -26,7 +26,7 @@ class User extends Authenticatable
         'password',
         'direccion',
         'telefono',
-        'monedas',
+        'saldo',                  // CORREGIDO: era 'monedas' pero el campo en BD se llama 'saldo'
         'suscripcion',
         'fecha_fin_suscripcion',
     ];

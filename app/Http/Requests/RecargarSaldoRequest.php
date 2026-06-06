@@ -14,7 +14,7 @@ class RecargarSaldoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'cantidad' => 'required|numeric|min:1',
+            'cantidad' => 'required|integer|min:1|max:100000', // KC enteras, máx 100000 por recarga (1000€)
         ];
     }
 }
